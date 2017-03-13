@@ -24,34 +24,34 @@ def prepare_data(soy, geo, gene, years=valid_years, previous=1):
 
     def training_data_for_year(_years, _previous=1):
         """
-        Select data from training set that come from given years.
-        All geo info in year X will be dropped except those of year X
-        and some years which are previous to year X.
+		Select data from training set that come from given years.
+		All geo info in year X will be dropped except those of year X
+		and some years which are previous to year X.
 
-        For example:
-        If the original training data is like
+		For example:
+		If the original training data is like
 
-        =============================================
-        | YEAR | TEMP_09 | TEMP_10 | RAD_09 | RAD_10|
-        ---------------------------------------------
-        | 2010 | 123.123 | 456.456 | 11.234 | 22.111|
-        =============================================
+		=============================================
+		| YEAR | TEMP_09 | TEMP_10 | RAD_09 | RAD_10|
+		---------------------------------------------
+		| 2010 | 123.123 | 456.456 | 11.234 | 22.111|
+		=============================================
 
-        The result should looks like:
+		The result should looks like:
 
-        ==========================================
-        | YEAR | TEMP-0 | TEMP-1 | RAD-0 | RAD-1 |
-        ------------------------------------------
-        | 2010 | 456.456| 123.123| 22.111| 11.234|
-        ==========================================
+		==========================================
+		| YEAR | TEMP-0 | TEMP-1 | RAD-0 | RAD-1 |
+		------------------------------------------
+		| 2010 | 456.456| 123.123| 22.111| 11.234|
+		==========================================
 
-        Where TEMP-0 is the temp of current year (2010), and TEMP-1 is
-        the temp of current year minus 1 (2009).
+		Where TEMP-0 is the temp of current year (2010), and TEMP-1 is
+		the temp of current year minus 1 (2009).
 
-        :param _years: Which years you want (e.g. ['09', '10', '11'])
-        :param _previous: Leave how many years previous to the corresponding one
-        :return: selected data set
-        """
+		:param _years: Which years you want (e.g. ['09', '10', '11'])
+		:param _previous: Leave how many years previous to the corresponding one
+		:return: selected data set
+		"""
         global col
         if not set(_years).issubset(valid_years):
             raise Exception('Invalid year to build training data: '.join(_years))
@@ -85,6 +85,10 @@ def prepare_data(soy, geo, gene, years=valid_years, previous=1):
 
 if __name__ == '__main__':
     import sys
+
+    if len(sys.argv) != 4:
+        print 'Usage: python prepare.py soy-yield.csv geo-info.csv gene-info.csv'
+        exit(1)
 
     soy_file = pd.read_csv(sys.argv[1])
     geo_file = pd.read_csv(sys.argv[2])
