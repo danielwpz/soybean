@@ -56,7 +56,7 @@ def prepare_data(soy, geo, gene, years=valid_years, previous=1):
         if not set(_years).issubset(valid_years):
             raise Exception('Invalid year to build training data: '.join(_years))
 
-        # select rows for that year
+        # select rows of given years
         int_years = map(lambda year: 2000 + int(year), _years)
         all_years_training = training[training['YEAR'].isin(int_years)]
         result = all_years_training.copy()
@@ -75,7 +75,7 @@ def prepare_data(soy, geo, gene, years=valid_years, previous=1):
             result['PREC-%d' % i] = all_years_training.apply(info_of_year('PREC', years_ahead=i), axis=1)
             result['RAD-%d' % i] = all_years_training.apply(info_of_year('RAD', years_ahead=i), axis=1)
 
-        # drop original 'TEMP_' columns
+        # drop original 'TEMP_'-like columns
         col_to_drop = [col for col in list(result.columns.values) if
                        ('TEMP_' in col or 'PREC_' in col or 'RAD_' in col)]
         return result.drop(col_to_drop, axis=1)
