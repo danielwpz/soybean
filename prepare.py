@@ -4,55 +4,47 @@ valid_years = ['09', '10', '11', '12', '13', '14']
 
 
 def prepare_data(soy, geo, gene, years=valid_years, previous=1):
-    # create the joint data_frame that we will use to fit the model
+    return prepare_geo_data(soy, geo, years, previous)
+
+
+def prepare_geo_data(soy, geo, years, previous):
     pd_soy = soy[['YEAR', 'LOCATION', 'VARIETY', 'RM', 'YIELD']]
     pd_geo = geo.drop(['LATITUDE', 'LONGITUDE', 'FIPS', 'AREA'], 1)
-    pd_gene = gene.drop(['RM', 'CLASS_OF'], 1)
 
-    # convert gene information into integer values
-    pd_gene = pd_gene.replace(to_replace=['AA', 'CC', 'GG', 'TT', 'AC', 'AG', 'AT', 'CG', 'NN'],
-                              value=[1, 2, 3, 4, 5, 6, 7, 8, 0])
-
-    # merge tables
+    # merge soy and geo tables
     pd_soy_geo = pd.merge(pd_soy, pd_geo, on='LOCATION')
-    # TODO now we use inner join here because some VARIETY are not present in the
-    # gene table. Some similarity estimation like KNN shall be used in the future
-    pd_joint = pd.merge(pd_soy_geo, pd_gene, how='inner', on='VARIETY')
-
-    # training data
-    training = pd_joint.drop(['LOCATION', 'VARIETY'], 1)
+    training = pd_soy_geo.drop(['LOCATION'], 1)
 
     def training_data_for_year(_years, _previous=1):
         """
-		Select data from training set that come from given years.
-		All geo info in year X will be dropped except those of year X
-		and some years which are previous to year X.
+        Select data from training set that come from given years.
+        All geo info in year X will be dropped except those of year X
+        and some years which are previous to year X.
 
-		For example:
-		If the original training data is like
+        For example:
+        If the original training data is like
 
-		=============================================
-		| YEAR | TEMP_09 | TEMP_10 | RAD_09 | RAD_10|
-		---------------------------------------------
-		| 2010 | 123.123 | 456.456 | 11.234 | 22.111|
-		=============================================
+        =============================================
+        | YEAR | TEMP_09 | TEMP_10 | RAD_09 | RAD_10|
+        ---------------------------------------------
+        | 2010 | 123.123 | 456.456 | 11.234 | 22.111|
+        =============================================
 
-		The result should looks like:
+        The result should looks like:
 
-		==========================================
-		| YEAR | TEMP-0 | TEMP-1 | RAD-0 | RAD-1 |
-		------------------------------------------
-		| 2010 | 456.456| 123.123| 22.111| 11.234|
-		==========================================
+        ==========================================
+        | YEAR | TEMP-0 | TEMP-1 | RAD-0 | RAD-1 |
+        ------------------------------------------
+        | 2010 | 456.456| 123.123| 22.111| 11.234|
+        ==========================================
 
-		Where TEMP-0 is the temp of current year (2010), and TEMP-1 is
-		the temp of current year minus 1 (2009).
+        Where TEMP-0 is the temp of current year (2010), and TEMP-1 is
+        the temp of current year minus 1 (2009).
 
-		:param _years: Which years you want (e.g. ['09', '10', '11'])
-		:param _previous: Leave how many years previous to the corresponding one
-		:return: selected data set
-		"""
-        global col
+        :param _years: Which years you want (e.g. ['09', '10', '11'])
+        :param _previous: Leave how many years previous to the corresponding one
+        :return: selected data set
+        """
         if not set(_years).issubset(valid_years):
             raise Exception('Invalid year to build training data: '.join(_years))
 
@@ -62,8 +54,8 @@ def prepare_data(soy, geo, gene, years=valid_years, previous=1):
         result = all_years_training.copy()
 
         # select geo related columns of the year which is years_ahead of each row's 'YEAR' column
-        def info_of_year(col, years_ahead=0):
-            col_prefix = col + '_'
+        def info_of_year(column, years_ahead=0):
+            col_prefix = column + '_'
 
             def actual_year(row):
                 return str(row['YEAR'] - years_ahead)[2:]
@@ -83,15 +75,48 @@ def prepare_data(soy, geo, gene, years=valid_years, previous=1):
     return training_data_for_year(years, previous)
 
 
+def most_significant_gene(gene, num):
+    def cal_sd(s):
+        """
+        Calculate the 'unlikeability' of each gene column.
+        Here we use :
+        sd = 1 - p1^2 - p2^2 ... - pm^2,
+        where pm means the frequency of category m.
+        :param s:
+        :return:
+        """
+        n = s.sum()
+        d = 0
+        for i, c in s.iteritems():
+            freq = 1.0 * c / n
+            d += freq * freq
+        return 1 - d
+
+    pd_gene = gene.drop(['VARIETY', 'FAMILY', 'RM', 'CLASS_OF'], 1)
+    l = []
+
+    for col in pd_gene:
+        entry = (col, cal_sd(pd_gene[col].value_counts()))
+        l.append(entry)
+
+    return [e[0] for e in sorted(l, key=lambda tup: tup[1], reverse=True)[:num]]
+
+
 if __name__ == '__main__':
     import sys
 
-    if len(sys.argv) != 4:
-        print 'Usage: python prepare.py soy-yield.csv geo-info.csv gene-info.csv'
+    soy_file = pd.read_csv('dataset/yield.csv')
+    geo_file = pd.read_csv('dataset/geo.csv')
+    gene_file = pd.read_csv('dataset/gene.csv')
+
+    if len(sys.argv) == 1:
+        print 'Usage: python prepare.py [geo]'
         exit(1)
 
-    soy_file = pd.read_csv(sys.argv[1])
-    geo_file = pd.read_csv(sys.argv[2])
-    gene_file = pd.read_csv(sys.argv[3])
-
-    prepare_data(soy_file, geo_file, gene_file).to_csv('training.csv')
+    if sys.argv[1] == 'geo':
+        output_file = 'training.csv'
+        prepare_data(soy_file, geo_file, gene_file).to_csv(output_file)
+        print 'Prepare geo data done. output to file "%s"' % output_file
+    else:
+        print 'Wrong command'
+        exit(1)

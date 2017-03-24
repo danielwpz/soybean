@@ -6,8 +6,9 @@
 3. (Optional) To run soy.ipynb, install jupyter and run `$> jupyter notebook soy.ipynb`
 
 ## How to generate training data
+1. Get geo data (year by year)    
+
 run
 ```bash
-python prepare.py soy-yield.csv geo-info.csv gene-info.csv
+python prepare.py geo
 ```
-replace those csv files with actual path
