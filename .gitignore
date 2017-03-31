@@ -4,3 +4,4 @@ tmp.*
 .idea/
 .ipynb_checkpoints/
 training.csv
+dataset/prepared
