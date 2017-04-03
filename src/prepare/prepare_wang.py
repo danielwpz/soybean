@@ -110,7 +110,7 @@ if __name__ == '__main__':
     gene_file = pd.read_csv('dataset/gene.csv')
 
     if len(sys.argv) == 1:
-        print 'Usage: python prepare.py [geo]'
+        print 'Usage: python prepare_wang.py [geo]'
         exit(1)
 
     if sys.argv[1] == 'geo':
