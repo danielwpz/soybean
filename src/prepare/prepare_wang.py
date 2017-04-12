@@ -1,15 +1,44 @@
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+
+from prepare import PrepareData
+
+class PrepareDataWang(PrepareData):
+    def __init__(self):
+        PrepareData.__init__(self)
+
+    def get_data(self):
+        soy_file = pd.read_csv('dataset/yield.csv')
+        geo_file = pd.read_csv('dataset/geo.csv')
+        gene_file = pd.read_csv('dataset/gene.csv')
+
+        data = prepare_data(soy_file, geo_file, gene_file, previous=0)
+        data = data.rename(columns={'YIELD': 'Y'})
+
+        print 'Using Features:'
+        print data.columns.values
+
+        features = PrepareData.get_feature(data)
+        labels = PrepareData.get_label(data)
+
+        print 'Applying MinMax scale on all features.'
+        scaler = MinMaxScaler()
+        scaler.fit(features)
+        features = scaler.transform(features)
+
+        return {'x': features, 'y': labels}
+
 
 valid_years = ['09', '10', '11', '12', '13', '14']
 
 
 def prepare_data(soy, geo, gene, years=valid_years, previous=1):
-    return prepare_geo_data(soy, geo, years, previous)
-
+    result = prepare_geo_data(soy, geo, years, previous)
+    return result.drop(['REPNO', 'YEAR', 'VARIETY'], 1)
 
 def prepare_geo_data(soy, geo, years, previous):
-    pd_soy = soy[['YEAR', 'LOCATION', 'VARIETY', 'RM', 'YIELD']]
-    pd_geo = geo.drop(['LATITUDE', 'LONGITUDE', 'FIPS', 'AREA'], 1)
+    pd_soy = soy[['YEAR', 'LOCATION', 'VARIETY', 'RM', 'YIELD', 'REPNO']]
+    pd_geo = geo
 
     # merge soy and geo tables
     pd_soy_geo = pd.merge(pd_soy, pd_geo, on='LOCATION')

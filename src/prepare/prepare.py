@@ -13,7 +13,7 @@ class PrepareData:
         pass
 
     @staticmethod
-    def get_features(data):
+    def get_feature(data):
         return data.drop(['Y'], 1).as_matrix()
 
     @staticmethod

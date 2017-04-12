@@ -7,3 +7,4 @@ tmp.*
 training.csv
 dataset/prepared
 *.pyc
+.cache

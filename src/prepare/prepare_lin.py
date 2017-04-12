@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 from prepare import PrepareData
 
 
@@ -9,7 +10,7 @@ class PrepareDataLin(PrepareData):
         test = test.drop(test.columns[[0]], axis=1)
         test = test.rename(columns={'YIELD': 'Y'})
 
-        return test
+        return {'x': PrepareData.get_feature(test), 'y': PrepareData.get_label(test)}
 
     def get_training_data(self):
         training = pd.read_csv('../dataset/prepared/train.csv')
@@ -17,4 +18,12 @@ class PrepareDataLin(PrepareData):
         training = training.drop(training.columns[[0]], axis=1)
         training = training.rename(columns={'YIELD': 'Y'})
 
-        return training
+        # encode VARIETY
+        # le = LabelEncoder()
+        # le.fit(training['VARIETY'])
+        # training['VARIETY'] = le.transform(training['VARIETY'])
+
+        return {'x': PrepareData.get_feature(training), 'y': PrepareData.get_label(training)}
+
+    def get_data(self):
+        return self.get_training_data()
