@@ -1,7 +1,10 @@
 import time
+import numpy as np
+import pandas as pd
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 import matplotlib.pyplot as plt
 
 from prepare.prepare_lin import PrepareDataLin
@@ -12,6 +15,7 @@ from util.optimizer import Optimizer
 def eval_model(model, train_x, train_y, test_x, test_y, name, prepare):
     start_time = time.time()
     model.fit(train_x, train_y)
+    print
     print 'Training model %s in %.3f seconds.' % (name, time.time() - start_time)
 
     train_pred = model.predict(train_x)
@@ -42,33 +46,46 @@ def loss_curve(model, param_name, param_values, title):
 
 
 prepare = PrepareDataWang()
+# prepare = PrepareDataLin()
 all_data = prepare.get_data()
-test_size = int(0.2 * len(all_data['x']))
+np.random.shuffle(all_data)
+test_size = int(0.2 * len(all_data))
 
-train_x = all_data['x'][test_size:]
-train_y = all_data['y'][test_size:]
-test_x = all_data['x'][:test_size]
-test_y = all_data['y'][:test_size]
+train_x = [d['x'] for d in all_data[test_size:]]
+train_y = [d['y'] for d in all_data[test_size:]]
+test_x = [d['x'] for d in all_data[:test_size]]
+test_y = [d['y'] for d in all_data[:test_size]]
 
 print 'Data size: %d training, %d testing' % (len(train_x), len(test_x))
 
 regr = linear_model.LinearRegression(n_jobs=4)
 mlp = MLPRegressor(solver='adam',
                    alpha=0.0001,
-                   hidden_layer_sizes=(15, 15),
+                   hidden_layer_sizes=(15, 15, 15),
                    random_state=1,
                    activation="relu",
                    max_iter=500)
+gbrt = GradientBoostingRegressor(max_depth=5,
+                                 n_estimators=500)
 
+print '=============================='
 eval_model(regr, train_x, train_y, test_x, test_y, 'Linear', prepare)
+eval_model(gbrt, train_x, train_y, test_x, test_y, 'Boosting', prepare)
+eval_model(mlp, train_x, train_y, test_x, test_y, 'MLP', prepare)
+print '=============================='
 
 mlp_optimizer = Optimizer(mlp)
 
 alpha_values = [0.0001, 0.0003, 0.001, 0.003]
 layer_values = [(5, 5), (10, 10), (15, 15), (20, 20)]
 # layer_values = [(15, 15, 15)]
+# loss_curve(mlp, 'hidden_layer_sizes', layer_values, 'MLP')
 
-loss_curve(mlp, 'hidden_layer_sizes', layer_values, 'MLP')
+
+n_est_number = [100, 150, 200, 300]
+l_rate_values = [0.01, 0.03, 0.1]
+# loss_curve(gbrt, 'n_estimators', n_est_number, 'Boosting')
+loss_curve(gbrt, 'learning_rate', l_rate_values, 'Boosting')
 
 def get_score(model):
     model.fit(train_x, train_y)

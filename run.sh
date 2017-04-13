@@ -2,4 +2,4 @@
 
 source /Users/peizanwang/Programs/tensor/bin/activate
 
-python prepare.py
+python src/main.py

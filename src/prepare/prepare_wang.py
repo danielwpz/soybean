@@ -1,7 +1,9 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import LabelEncoder
 
 from prepare import PrepareData
+
 
 class PrepareDataWang(PrepareData):
     def __init__(self):
@@ -13,36 +15,44 @@ class PrepareDataWang(PrepareData):
         gene_file = pd.read_csv('dataset/gene.csv')
 
         data = prepare_data(soy_file, geo_file, gene_file, previous=0)
-        data = data.rename(columns={'YIELD': 'Y'})
 
-        print 'Using Features:'
-        print data.columns.values
-
-        features = PrepareData.get_feature(data)
-        labels = PrepareData.get_label(data)
-
-        print 'Applying MinMax scale on all features.'
-        scaler = MinMaxScaler()
-        scaler.fit(features)
-        features = scaler.transform(features)
-
-        return {'x': features, 'y': labels}
+        return data
 
 
 valid_years = ['09', '10', '11', '12', '13', '14']
 
 
 def prepare_data(soy, geo, gene, years=valid_years, previous=1):
-    result = prepare_geo_data(soy, geo, years, previous)
-    return result.drop(['REPNO', 'YEAR', 'VARIETY'], 1)
+    data = prepare_geo_data(soy, geo, years, previous)
+    data = prepare_gene_data(data, gene)
+
+    drop_columns = ['REPNO', 'YEAR', 'VARIETY', 'LOCATION', 'EXPERIMENT', 'CLASS_OF', 'FAMILY', 'CHECK']
+    drop_columns += ['LATITUDE', 'LONGITUDE', 'AREA', 'RM']
+    data = data.drop(drop_columns, 1)
+    data = data.rename(columns={'YIELD': 'Y'})
+
+    print 'Using %d Features:' % (len(data.columns.values) - 1)
+    print data.columns.values
+
+    features = PrepareData.get_feature(data)
+    labels = PrepareData.get_label(data)
+
+    print 'Applying MinMax scale on all features.'
+    scaler = MinMaxScaler()
+    scaler.fit(features)
+    features = scaler.transform(features)
+
+    result = [{'x': features[i], 'y': labels[i]} for i in range(len(features))]
+
+    return result
+
 
 def prepare_geo_data(soy, geo, years, previous):
-    pd_soy = soy[['YEAR', 'LOCATION', 'VARIETY', 'RM', 'YIELD', 'REPNO']]
+    pd_soy = soy
     pd_geo = geo
 
     # merge soy and geo tables
-    pd_soy_geo = pd.merge(pd_soy, pd_geo, on='LOCATION')
-    training = pd_soy_geo.drop(['LOCATION'], 1)
+    training = pd.merge(pd_soy, pd_geo, on='LOCATION')
 
     def training_data_for_year(_years, _previous=1):
         """
@@ -102,6 +112,17 @@ def prepare_geo_data(soy, geo, years, previous):
         return result.drop(col_to_drop, axis=1)
 
     return training_data_for_year(years, previous)
+
+
+def prepare_gene_data(soy, gene):
+    result = soy.copy()
+
+    # encode VARIETY
+    le = LabelEncoder()
+    le.fit(result['VARIETY'])
+    result['VARIETY_N'] = le.transform(result['VARIETY'])
+
+    return result
 
 
 def most_significant_gene(gene, num):

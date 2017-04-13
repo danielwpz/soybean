@@ -16,6 +16,8 @@ class Optimizer:
         return self
 
     def solve(self, evaluator):
+        score = -1
+
         for param in self.__chain:
             self.model.set_params(**self.params)    # set previous best param
             results = [(evaluator(self.model.set_params(**{param['pname']: value})), value)
